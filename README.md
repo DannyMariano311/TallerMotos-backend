@@ -7,7 +7,8 @@ DB_HOST=localhost
 DB_USER=tu_usuario
 DB_PASSWORD=tu_contraseña
 DB_NAME=taller_motos_db
-DB_PORT=3306
+NODE_ENV=development
+PORT=3000
 
 
 ### 2. Preparación de la Base de Datos
