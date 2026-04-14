@@ -23,6 +23,9 @@ class ItemService {
             work_order_id
         });
 
+        workOrder.total = parseFloat(workOrder.total) + (parseFloat(count) * parseFloat(unitValue));
+        await workOrder.save();
+
         return newItem;
     }
 
@@ -47,6 +50,9 @@ class ItemService {
         }
         
         await item.destroy();
+
+        workOrder.total = parseFloat(workOrder.total) - (parseFloat(item.count) * parseFloat(item.unitValue));
+        await workOrder.save();
 
         return { message: 'Ítem eliminado correctamente' };
     }
