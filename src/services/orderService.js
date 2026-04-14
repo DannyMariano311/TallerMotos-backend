@@ -69,8 +69,8 @@ class OrderService {
     });
 
     return {
-      totalItems: count,
-      totalPages: Math.ceil(count / pageSize),
+      totalItems: count - 1,
+      totalPages: Math.ceil((count - 1) / pageSize),
       currentPage: page,
       orders: rows
     };
@@ -80,7 +80,13 @@ class OrderService {
   async findOrderById(orderId) {
     const order = await WorkOrder.findByPk(orderId, {
       include: [
-        { model: Motorcycle, as: 'motorcycle' },
+        {
+          model: Motorcycle,
+          as: 'motorcycle',
+          include: [
+            { model: Client, as: 'client' }
+          ]
+        },
         { model: Item, as: 'items' }
       ]
     });

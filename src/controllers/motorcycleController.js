@@ -32,7 +32,7 @@ exports.findMotorcyclesByFilter = async (req, res) => {
 
   try {
     const motorcycles = await Motorcycle.findAll({
-      where: plate ? { plate: { [Op.like]: `%${plate}%` } } : {}
+      where: plate ? { plate: { [Op.eq]: plate } } : {}
     });
     res.status(200).json(motorcycles);
   } catch (error) {

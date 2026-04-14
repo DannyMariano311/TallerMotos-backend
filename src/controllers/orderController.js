@@ -2,12 +2,12 @@ const { createNewOrder, findOrdersByFilter, findOrderById, updateOrderStatus } =
 
 exports.createOrder = async (req, res) => {
 
-  const { entryDate, faultDescription, motorcycleId } = req.params;
+  const { entryDate, faultDescription, motorcycleId } = req.body;
   if (!motorcycleId) {
     return res.status(400).json({ error: 'El ID de la moto es obligatorio' });
   }
-  if (!entryDate || !faultDescription) {
-    return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+  if (!faultDescription) {
+    return res.status(400).json({ error: 'La descripción de la falla es obligatoria' });
   }
 
   try {
