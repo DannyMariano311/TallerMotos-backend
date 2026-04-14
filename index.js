@@ -1,1 +1,36 @@
-const express = require('express'); const app = express(); app.listen(3000, () => console.log('Servidor corriendo en puerto 3000'));
+const express = require('express');
+const cors = require('cors');
+const app = express();
+const db = require('./src/models');
+
+app.use(cors());
+app.use(express.json());
+
+// Importar rutas
+//rutas de clientes
+const clientRoutes = require('./src/routes/clientRoutes');
+app.use('/api/clients', clientRoutes);
+
+//rutas de motos
+const motorcycleRoutes = require('./src/routes/motorcycleRoutes');
+app.use('/api/motorcycles', motorcycleRoutes);
+
+//rutas de ordenes
+const orderRoutes = require('./src/routes/orderRoutes');
+app.use('/api/work-orders', orderRoutes);
+
+//ruta de items
+const itemRoutes = require('./src/routes/itemRoutes');
+app.use('/api/work-orders/:id/items', itemRoutes);
+
+//manejo de errores
+const errorHandler = require('./src/middleware/errorHandler');
+app.use(errorHandler);
+
+const PORT = process.env.PORT || 3000;
+
+// Sincronizar modelos y levantar servidor
+db.sequelize.authenticate().then(() => {
+  console.log('Base de datos conectada');
+  app.listen(PORT, () => console.log(`Servidor en puerto ${PORT}`));
+});
