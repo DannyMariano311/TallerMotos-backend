@@ -37,12 +37,19 @@ class OrderStatusHistoryService {
   }
 
   /**
-   * Get status history for a work order
+   * Get status history for a work order with optional filters
    * @param {number} workOrderId - ID of the work order
+   * @param {Object} filters - Optional filters object
+   * @param {Date} filters.startDate - Start date for filtering (optional)
+   * @param {Date} filters.endDate - End date for filtering (optional)
+   * @param {string} filters.userId - Filter by user ID (optional)
+   * @param {string} filters.userName - Filter by user name (optional, case-insensitive partial match)
    * @returns {Promise<Array>} Array of history records
    */
-  async getOrderStatusHistory(workOrderId) {
+  async getOrderStatusHistory(workOrderId, filters = {}) {
     try {
+      const { Op } = require('sequelize');
+      
       // Verificar que la orden existe
       const order = await WorkOrder.findByPk(workOrderId);
       if (!order) {
@@ -51,15 +58,37 @@ class OrderStatusHistoryService {
         throw error;
       }
 
+      const whereConditions = { workOrderId };
+
+      if (filters.startDate || filters.endDate) {
+        whereConditions.createdAt = {};
+        if (filters.startDate) {
+          whereConditions.createdAt[Op.gte] = new Date(filters.startDate);
+        }
+        if (filters.endDate) {
+          whereConditions.createdAt[Op.lte] = new Date(filters.endDate);
+        }
+      }
+
+      const userInclude = {
+        model: User,
+        as: 'user',
+        attributes: ['id', 'name', 'email', 'role']
+      };
+
+      if (filters.userId) {
+        userInclude.where = { name: filters.userId };
+        userInclude.required = true;
+      } else if (filters.userName) {
+        userInclude.where = {
+          name: { [Op.like]: `%${filters.userName}%` }
+        };
+        userInclude.required = true;
+      }
+
       const history = await WorkOrderStatusHistory.findAll({
-        where: { workOrderId },
-        include: [
-          {
-            model: User,
-            as: 'user',
-            attributes: ['id', 'name', 'email', 'role']
-          }
-        ],
+        where: whereConditions,
+        include: [userInclude],
         order: [['createdAt', 'DESC']],
         raw: false
       });
@@ -76,32 +105,12 @@ class OrderStatusHistoryService {
    * @param {Date} startDate - Start date
    * @param {Date} endDate - End date
    * @returns {Promise<Array>} Array of history records
+   * @deprecated Use getOrderStatusHistory with filters instead
+   * @example
    */
   async getStatusHistoryByDateRange(workOrderId, startDate, endDate) {
-    try {
-      const { Op } = require('sequelize');
-
-      const history = await WorkOrderStatusHistory.findAll({
-        where: {
-          workOrderId,
-          createdAt: {
-            [Op.between]: [startDate, endDate]
-          }
-        },
-        include: [
-          {
-            model: User,
-            as: 'user',
-            attributes: ['id', 'name', 'email', 'role']
-          }
-        ],
-        order: [['createdAt', 'DESC']]
-      });
-
-      return history;
-    } catch (error) {
-      throw error;
-    }
+    // Delegue a getOrderStatusHistory con filtros
+    return this.getOrderStatusHistory(workOrderId, { startDate, endDate });
   }
 
 }

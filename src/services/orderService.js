@@ -138,19 +138,19 @@ class OrderService {
     }
 
     // Bloquear cambios en órdenes CANCELADAS
-    if (order.status === 'CANCELADA') {
+    if (userRole !== 'ADMIN' && order.status === 'CANCELADA') {
       const error = new Error('No se pueden realizar cambios en órdenes CANCELADAS');
       error.statusCode = 400;
       throw error;
     }
 
-    if (!VALID_TRANSITIONS[order.status]) {
+    if (userRole !== 'ADMIN' && !VALID_TRANSITIONS[order.status]) {
       const error = new Error(`Estado inválido: ${order.status}`);
       error.statusCode = 400;
       throw error;
     }
 
-    if (!VALID_TRANSITIONS[order.status].includes(newStatus)) {
+    if (userRole !== 'ADMIN' && !VALID_TRANSITIONS[order.status].includes(newStatus)) {
       const error = new Error(
         `Transición no permitida: No se puede cambiar de ${order.status} a ${newStatus}. ` +
         `Estados permitidos desde ${order.status}: ${VALID_TRANSITIONS[order.status].join(', ')}`

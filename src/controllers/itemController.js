@@ -14,7 +14,7 @@ exports.createItem = async (req, res) => {
   if (type != 'MANO_OBRA' && type !== 'REPUESTO') {
     return res.status(400).json({ error: 'No se puede crear el ítem: El tipo de ítem especificado no es válido.' });
   }
-  if (isNaN(count) || count <= 1) {
+  if (isNaN(count) || count < 1) {
     return res.status(400).json({ error: 'El campo "count" debe ser un número positivo mayor que 1' });
   }
   if (isNaN(unitValue) || unitValue < 0) {

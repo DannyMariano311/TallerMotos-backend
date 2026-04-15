@@ -112,11 +112,47 @@ exports.updateOrderStatus = async (req, res) => {
 exports.getOrderStatusHistory = async (req, res, next) => {
   try {
     const { id } = req.params;
+    
+    const filters = {};
+    
+    if (req.query.startDate) {
+      filters.startDate = new Date(req.query.startDate);
+      if (isNaN(filters.startDate.getTime())) {
+        return res.status(400).json({ 
+          error: 'startDate inválida. Use formato ISO: YYYY-MM-DD o ISO 8601' 
+        });
+      }
+    }
+    if (req.query.endDate) {
+      filters.endDate = new Date(req.query.endDate);
+      if (isNaN(filters.endDate.getTime())) {
+        return res.status(400).json({ 
+          error: 'endDate inválida. Use formato ISO: YYYY-MM-DD o ISO 8601' 
+        });
+      }
+    }
+    if (filters.startDate && filters.endDate && filters.startDate > filters.endDate) {
+      return res.status(400).json({
+        error: 'startDate debe ser menor o igual a endDate'
+      });
+    }
+    if (req.query.userId) {
+      filters.userId = req.query.userId;
+    }
+    if (req.query.userName) {
+      filters.userName = req.query.userName;
+    }
+    if (req.query.userId && req.query.userName) {
+      return res.status(400).json({
+        error: 'Especifique userId O userName, no ambos'
+      });
+    }
 
-    const history = await orderStatusHistoryService.getOrderStatusHistory(id);
+    const history = await orderStatusHistoryService.getOrderStatusHistory(id, filters);
 
     return res.status(200).json({
       workOrderId: id,
+      filtersApplied: Object.keys(filters).length > 0 ? filters : null,
       totalChanges: history.length,
       history: history
     });
