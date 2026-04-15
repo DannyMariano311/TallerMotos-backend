@@ -9,6 +9,10 @@ DB_PASSWORD=tu_contraseña
 DB_NAME=taller_motos_db
 NODE_ENV=development
 PORT=3000
+JWT_SECRET=your-super-secret-key-change-this-in-production-with-a-random-string
+JWT_EXPIRES_IN=1h
+JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-this-in-production-with-a-random-string
+JWT_REFRESH_EXPIRES_IN=7d
 
 
 ### 2. Preparación de la Base de Datos
@@ -26,7 +30,12 @@ npm install
 ### 4. Ejecución de Migraciones (Sequelize)
 Este proyecto utiliza Sequelize para el modelado de datos. Para construir automáticamente las tablas y relaciones en la base de datos que creaste en el paso 2, ejecuta:
 
+#Importante: Tiene que estar parado en la carpeta ./src para lanzar los comandos
+
 npx sequelize-cli db:migrate
+
+# Crear usuario admin inicial
+npx sequelize db:seed:all
 
 
 ### 5. Ejecución del Proyecto

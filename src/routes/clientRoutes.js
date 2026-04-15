@@ -2,8 +2,10 @@ const express = require('express');
 const router = express.Router();
 const clientController = require('../controllers/clientController');
 const checkEmptyBody = require('../middleware/checkEmptyBody');
+const { isAdmin } = require('../middleware/authMiddleware');
 
-router.post('/', checkEmptyBody, clientController.createClient);
+// ADMIN: CRUD completo
+router.post('/', checkEmptyBody, isAdmin, clientController.createClient);
 router.get('/', clientController.findClientsByFilter);
 router.get('/:id', clientController.findClientById);
 

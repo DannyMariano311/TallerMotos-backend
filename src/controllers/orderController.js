@@ -1,4 +1,5 @@
 const { createNewOrder, findOrdersByFilter, findOrderById, updateOrderStatus } = require('../services/orderService');
+const orderStatusHistoryService = require('../services/orderStatusHistoryService');
 
 exports.createOrder = async (req, res) => {
 
@@ -11,7 +12,12 @@ exports.createOrder = async (req, res) => {
   }
 
   try {
-    const newOrder = await createNewOrder({ entryDate, faultDescription, motorcycleId });
+    const newOrder = await createNewOrder({ 
+      entryDate, 
+      faultDescription, 
+      motorcycleId,
+      userId: req.user?.id
+    });
     res.status(201).json(newOrder);
   } catch (error) {
     if (error.statusCode === 404) {
@@ -66,14 +72,30 @@ exports.findOrderById = async (req, res) => {
 
 exports.updateOrderStatus = async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body;
+  const { status, note } = req.body;
 
   if (!status) {
     return res.status(400).json({ error: 'El nuevo estado es obligatorio' });
   }
 
+  // Check role-based restrictions for status updates
+  if (req.user && req.user.role === 'MECANICO') {
+    const allowedStatusesForMecanico = ['DIAGNOSTICO', 'EN_PROCESO', 'LISTA'];
+    if (!allowedStatusesForMecanico.includes(status)) {
+      return res.status(403).json({
+        error: `Mecánicos solo pueden actualizar a estos estados: ${allowedStatusesForMecanico.join(', ')}`
+      });
+    }
+  }
+
   try {
-    const order = await updateOrderStatus(id, status);
+    const order = await updateOrderStatus(
+      id,
+      status,
+      req.user.id,           // userId
+      note || null,          // Nota opcional
+      req.user.role          // Rol del usuario
+    );
     res.status(200).json(order);
   } catch (error) {
     if (error.statusCode === 404) {
@@ -84,5 +106,24 @@ exports.updateOrderStatus = async (req, res) => {
       console.error('Error al actualizar el estado de la orden:', error);
       res.status(500).json({ error: 'Error al actualizar el estado de la orden' });
     }
+  }
+};
+
+exports.getOrderStatusHistory = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const history = await orderStatusHistoryService.getOrderStatusHistory(id);
+
+    return res.status(200).json({
+      workOrderId: id,
+      totalChanges: history.length,
+      history: history
+    });
+  } catch (error) {
+    if (error.statusCode === 404) {
+      return res.status(404).json({ error: error.message });
+    }
+    next(error);
   }
 };

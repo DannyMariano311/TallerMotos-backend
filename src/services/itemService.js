@@ -1,4 +1,3 @@
-// Importamos los modelos necesarios desde la carpeta models
 const { WorkOrder, Item } = require('../models');
 
 class ItemService {

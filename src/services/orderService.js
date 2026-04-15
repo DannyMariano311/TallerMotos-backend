@@ -1,6 +1,7 @@
 // Importamos los modelos necesarios desde la carpeta models
 const { WorkOrder, Motorcycle, Client, Item } = require('../models');
 const { Op } = require('sequelize');
+const orderStatusHistoryService = require('./orderStatusHistoryService');
 
 const VALID_TRANSITIONS = {
   'RECIBIDA': ['DIAGNOSTICO', 'CANCELADA'],
@@ -15,7 +16,7 @@ class OrderService {
 
   // Método para crear una nueva orden de trabajo
   async createNewOrder(orderData) {
-    const { entryDate, faultDescription, motorcycleId } = orderData;
+    const { entryDate, faultDescription, motorcycleId, userId } = orderData;
 
     const motorcycle = await Motorcycle.findByPk(motorcycleId);
 
@@ -32,6 +33,17 @@ class OrderService {
       status: 'RECIBIDA',                 // Toda orden inicia aquí
       total: 0                            // Inicia en 0 hasta agregar ítems
     });
+
+    // Registrar el estado inicial en el historial si userId está disponible
+    if (userId) {
+      await orderStatusHistoryService.recordStatusChange(
+        newOrder.id,
+        null, // fromStatus = null (estado inicial)
+        'RECIBIDA',
+        userId,
+        'Orden creada'
+      );
+    }
 
     return newOrder;
   }
@@ -101,12 +113,34 @@ class OrderService {
   }
 
   // Método para actualizar el estado de una orden de trabajo
-  async updateOrderStatus(orderId, newStatus) {
+  async updateOrderStatus(orderId, newStatus, userId, note = null, userRole = null) {
     const order = await WorkOrder.findByPk(orderId);
 
     if (!order) {
       const error = new Error('Orden no encontrada');
       error.statusCode = 404;
+      throw error;
+    }
+
+    // Bloquear cambios posteriores a ENTREGADA (excepto ADMIN con nota de auditoría)
+    if (order.status === 'ENTREGADA') {
+      if (!userRole || userRole !== 'ADMIN') {
+        const error = new Error('No se pueden realizar cambios en órdenes ENTREGADAS');
+        error.statusCode = 400;
+        throw error;
+      }
+      // Admin puede cambiar pero debe ser explícito con nota
+      if (!note || note.trim() === '') {
+        const error = new Error('Se requiere una nota de auditoría para reversar una orden ENTREGADA');
+        error.statusCode = 400;
+        throw error;
+      }
+    }
+
+    // Bloquear cambios en órdenes CANCELADAS
+    if (order.status === 'CANCELADA') {
+      const error = new Error('No se pueden realizar cambios en órdenes CANCELADAS');
+      error.statusCode = 400;
       throw error;
     }
 
@@ -125,8 +159,20 @@ class OrderService {
       throw error;
     }
 
+    const oldStatus = order.status;
     order.status = newStatus;
     await order.save();
+
+    // Registrar el cambio en el historial
+    if (userId) {
+      await orderStatusHistoryService.recordStatusChange(
+        orderId,
+        oldStatus,
+        newStatus,
+        userId,
+        note
+      );
+    }
 
     return order;
   }

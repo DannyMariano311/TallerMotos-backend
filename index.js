@@ -2,11 +2,20 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 const db = require('./src/models');
+const { authenticateToken } = require('./src/middleware/authMiddleware');
+const errorHandler = require('./src/middleware/errorHandler');
 
 app.use(cors());
 app.use(express.json());
 
 // Importar rutas
+//rutas de autenticación (sin protección)
+const authRoutes = require('./src/routes/authRoutes');
+app.use('/api/auth', authRoutes);
+
+// Middleware: Requerir autenticación para todas las rutas de negocio
+app.use(authenticateToken);
+
 //rutas de clientes
 const clientRoutes = require('./src/routes/clientRoutes');
 app.use('/api/clients', clientRoutes);
@@ -24,7 +33,6 @@ const itemRoutes = require('./src/routes/itemRoutes');
 app.use('/api/work-orders/:id/items', itemRoutes);
 
 //manejo de errores
-const errorHandler = require('./src/middleware/errorHandler');
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
